@@ -1,6 +1,6 @@
 {
   "name": "dsh-multi-chat",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "Side-by-side multi-session grid for the DeepSeek Harness web GUI: every session you click in the sidebar joins the conversation area as its own pane (max 3 per row), the active session stays highlighted, and panes can be reordered by dragging their top-right handle.",
   "type": "module",
   "main": "lib/index.js",
@@ -32,7 +32,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "node tests/manifest.test.mjs && node tests/host.test.mjs && node tests/store.test.mjs && node tests/registration.test.mjs && node tests/real-slot-core.test.mjs && node tests/render.test.mjs && node tests/interaction.test.mjs",
+    "test": "node tests/manifest.test.mjs && node tests/host.test.mjs && node tests/store.test.mjs && node tests/registration.test.mjs && node tests/real-slot-core.test.mjs && node tests/render.test.mjs && node tests/turn-rail.test.mjs && node tests/interaction.test.mjs",
     "test:watch": "node --test --test-isolation=none \"tests/*.test.mjs\"",
     "e2e:served": "node scripts/verify-served-bundle.mjs",
     "e2e:browser": "node scripts/browser-e2e.mjs",

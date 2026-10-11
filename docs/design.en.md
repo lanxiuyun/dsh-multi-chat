@@ -76,6 +76,7 @@ clicked session highlighted.
 | A24 | **The toolbar stays on one line in narrow windows** (e.g. the ~490px DSH floating session window) and degrades by width: never wraps, drops the drag hint at ≤640px, drops the usage counter and switches to the compact label at ≤480px; row height becomes `min(420px,62vh)` | `tests/render.test.mjs` + live 490×640 check |
 | A25 | **Narrow windows (<720px) are not taken over**: no slot registration, no retained sessions, no writes to shared storage; widening restores the grid (re-adopting the current session) and narrowing hands the conversation area back | `tests/registration.test.mjs` (fake window + resize) + live 490×640 / 1680×1050 / 520×700 checks |
 | A26 | **The column count follows the available width and fills the row**: two panes share the width (no empty third column), three across only when the width allows, panes never narrower than ~400px | `tests/render.test.mjs` (column template) + live 1680 / 1150 / 950 checks |
+| A27 | **The official turn navigator works inside grid panes**: the official "hide below a 900px container" rule is out-specified by one pane-scoped rule; the official class prefix is read from the official stylesheet at runtime and nothing is injected without it | `tests/turn-rail.test.mjs` (four cases: rule shape, missing-stylesheet fallback, idempotency, prefix change + unrelated stylesheet) and a live check (`display:block`, 11 marks in a pane) |
 
 ## 4. Implementation
 
@@ -300,6 +301,31 @@ panes share the row; `max(400px,30%)` provides both the pane floor (~400px) and 
 Live numbers (1680px window, 1384px of grid content): two panes = 2×688px filling 100%; three =
 3×456px; four = 3×456 + 1×456 (equal cells, the last row keeps its gap — confirmed with the user);
 a 1150px window gives two columns; a 950px window gives two; console clean throughout.
+
+**F11 the official turn navigator disappeared inside grid panes (v0.2.6)**: reported as "the conversation
+history panel on the right is gone". The official `TurnNavigator` in `dsh-client-ui-chat` (the
+fixed-pitch turn rail with its hover preview) carries its own rule
+
+```
+.<prefix>_frame{…position:absolute;right:12px;width:28px…}
+@container (width<=900px){.<prefix>_frame{display:none}}
+```
+
+i.e. **the official UI hides it whenever the conversation is narrower than 900px**, and grid panes are
+456–688px — so the element rendered but hid itself (live evidence: `display:"none"`,
+`containerType:"inline-size"`, container width 447px, slot chain
+`conversation.view → conversation.session → main → root`).
+
+The fix leaves the official container semantics alone and adds one pane-scoped rule with higher
+specificity: `.dsh-mc-pane [class*="<prefix>_frame"]{display:block}` (a class plus an attribute selector
+beats the official class-only rule wherever it sits, and `display:block` is exactly what that div gets
+from the UA sheet in the untouched official view). The build-specific prefix is parsed from the official
+stylesheet at runtime; when it is absent nothing is injected. Panes clip their overflow, and both the
+28px rail at `right:12px` and the `min(300px, 100cqw - 120px)` preview fit inside a pane, so nothing
+bleeds into a neighbour.
+
+Live re-check: inside the pane the element reports `display:"block"`, `marks:11`, `28×102px`, and the
+screenshot shows the tick rail back at the pane's right edge.
 
 ## 5. Known limitations and risks
 

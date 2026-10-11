@@ -53,6 +53,12 @@ npm test       # 7 suites, 90 tests
 npm run typecheck
 ```
 
+**v0.2.6 fix**: the official turn navigator (the tick rail with turn previews on the right of a
+conversation) hid itself inside every pane, because the official stylesheet hides it whenever its
+conversation container is narrower than 900px. One pane-scoped rule with higher specificity restores it
+(the official class prefix is read from the official stylesheet at runtime, and nothing is injected when
+that stylesheet is missing). Verified live: the rail renders 28×102px with its marks inside a 456px pane.
+
 **v0.2.5 fix**: the column count was hard-coded to three, so two sessions left a third of the row empty.
 The grid now fills: columns follow the available width (`auto-fit` collapses the tracks no pane lands in),
 two panes share the row, and three across appears only when the width allows — panes stay at least ~400px
