@@ -77,6 +77,8 @@ clicked session highlighted.
 | A25 | **Narrow windows (<720px) are not taken over**: no slot registration, no retained sessions, no writes to shared storage; widening restores the grid (re-adopting the current session) and narrowing hands the conversation area back | `tests/registration.test.mjs` (fake window + resize) + live 490×640 / 1680×1050 / 520×700 checks |
 | A26 | **The column count follows the available width and fills the row**: two panes share the width (no empty third column), three across only when the width allows, panes never narrower than ~400px | `tests/render.test.mjs` (column template) + live 1680 / 1150 / 950 checks |
 | A27 | **The official turn navigator works inside grid panes**: the official "hide below a 900px container" rule is out-specified by one pane-scoped rule; the official class prefix is read from the official stylesheet at runtime and nothing is injected without it | `tests/turn-rail.test.mjs` (four cases: rule shape, missing-stylesheet fallback, idempotency, prefix change + unrelated stylesheet) and a live check (`display:block`, 11 marks in a pane) |
+| A28 | **A working switch lives in the official settings page**: the plugins list carries our own item (`plugins.item`, rendered as `view:'summary'` and `view:'page'`), the switch tracks the store, switching off returns the conversation area to the official single-session view and switching on brings the grid back with its remembered panes; the card is registered independently of the grid, so it stays reachable while the grid is off | `tests/registration.test.mjs` (card survives off, grid returns on) + `tests/render.test.mjs` (both views, `data-enabled`) + a live round trip (`on → off → official view → on → 3 panes`, no console errors) |
+| A29 | **The preference persists apart from the pane set**: `dsh-multi-chat:grid` holds `'off'` (on removes the key) and never rewrites the `dsh-multi-chat:v1` pane order; a missing key or unreadable storage means "on" (fail-open) | `tests/store.test.mjs` |
 
 ## 4. Implementation
 
@@ -326,6 +328,29 @@ bleeds into a neighbour.
 
 Live re-check: inside the pane the element reports `display:"block"`, `marks:11`, `28×102px`, and the
 screenshot shows the tick rail back at the pane's right edge.
+
+**F12 new: the grid switch (v0.3.0, settings → Plugins → dsh-multi-chat)**: asked for "a place to decide whether
+the grid layout is on". Built the documented way (the official "Plugin Configuration Forms" page): register into
+**`plugins.item`** — the slot the five official settings plugins use — as
+`{id:'multi-chat', order:140, label, locale, inject}`. The renderer renders one component twice: `view:'summary'`
+(the one-liner in the plugin list) and `view:'page'` (the detail page, which also receives the official `form`
+face). The switch calls `setEnabled`, and the preference lives on its **own key** `dsh-multi-chat:grid` (`'off'`;
+on deletes it), completely separate from the pane payload `dsh-multi-chat:v1`: toggling never rewrites the pane
+order, a narrow window cannot clobber the other window's choice, and a missing key or unreadable storage means
+"on". The card is registered **independently of the grid** (it is the only way back once the grid is off) and does
+not need any pane to exist; the grid toolbar also gained an "Exit grid" action bound to the same preference.
+Switching off takes the same inert path as a narrow window (no following, no retaining, no registration, no pane
+writes); switching back on re-adopts the session the shell is showing, so "off → on" returns the grid with its
+remembered panes.
+
+**Gotcha 1 (recorded)**: the renderer **strips** a face's `hooks` field and hands each source back as a standard
+hook prop (`hooks.multiChat` → `useMultiChat`). The settings card is not rendered by the grid, so it must
+subscribe through `useMultiChat`; reading `props.hooks` is always `undefined`, which shows up as "the switch
+writes storage and the grid really turns off, but the card keeps saying On".
+
+**Gotcha 2 (verification harness)**: the client bundle is served under a stable URL + `rev`, so reusing one Chrome
+profile hits its HTTP cache (`Network.setCacheDisabled`, or a fresh profile) — and the server must be **restarted**
+to recompute `rev`, otherwise the old bundle is what gets verified.
 
 ## 5. Known limitations and risks
 

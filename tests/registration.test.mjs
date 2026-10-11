@@ -16,6 +16,8 @@ const {
   constants: {
     SLOT_MAIN,
     MAIN_PANEL_KEY,
+    SLOT_PLUGINS_ITEM,
+    SETTINGS_ITEM_ID,
     SLOT_PANE,
     SLOT_ROW_ACTION,
     ROW_ACTION_ID,
@@ -566,6 +568,54 @@ test('a narrow window keeps the official view and touches nothing else', () => {
     assert.equal(slots.live(SLOT_MAIN).length, 0, 'narrowing restores the official view')
     assert.deepEqual(sessions.releaseCalls.sort(), ['a', 'b'])
     assert.equal(storage.getItem('dsh-multi-chat:v1'), stored, 'the stored pane set survives')
+    dispose()
+  })
+})
+
+test('switching the grid off leaves the official view in place but keeps the settings card', () => {
+  // The settings card is the only way back on, so it must survive the grid being
+  // switched off — and it must not depend on any pane being open either.
+  const storage = createMemoryStorage({
+    'dsh-multi-chat:grid': 'off',
+    'dsh-multi-chat:v1': JSON.stringify({ version: 2, panes: ['a'], maxPanes: 6 }),
+  })
+  const slots = createFakeSlots()
+  slots.declare(SLOT_MAIN)
+  slots.declare(SLOT_ROW_ACTION)
+  slots.declare(SLOT_PLUGINS_ITEM)
+  const sessions = createFakeSessions({
+    a: sessionRow('a', { retainedBy: { mainView: 1 } }),
+    b: sessionRow('b'),
+  })
+  const { ctx, dispose } = createFakeCtx({ slots, sessions, uiWorkspace: { openSession() {} } })
+
+  withGlobalStorage(storage, () => {
+    exports.apply(ctx)
+    const [card] = slots.live(SLOT_PLUGINS_ITEM)
+    assert.ok(card, 'the settings card is registered even with the grid off')
+    assert.equal(card.options.id, 'multi-chat')
+    assert.equal(typeof card.options.label(), 'string')
+    const face = card.options.inject()
+    assert.equal(face.enabled, false, 'the card reads the stored preference')
+    assert.equal(typeof face.setEnabled, 'function')
+
+    sessions.setMain('b')
+    assert.equal(slots.live(SLOT_MAIN).length, 0, 'no grid while switched off')
+    assert.deepEqual(sessions.retainCalls, [], 'and no session is held live')
+
+    // Switching back on from the card re-adopts the shell's session and mounts
+    // the grid for the remembered pane plus it.
+    face.setEnabled(true)
+    assert.equal(face.enabled, true)
+    assert.equal(slots.live(SLOT_MAIN).length, 1, 'the grid comes back')
+    assert.deepEqual(sessions.retainCalls.map((call) => call.id).sort(), ['a', 'b'])
+    assert.deepEqual(face.hooks.multiChat.getSnapshot().panes, ['a', 'b'])
+    assert.equal(slots.live(SLOT_PLUGINS_ITEM).length, 1, 'still exactly one card')
+
+    // ... and off again hands the conversation area back.
+    face.setEnabled(false)
+    assert.equal(slots.live(SLOT_MAIN).length, 0)
+    assert.deepEqual(sessions.releaseCalls.sort(), ['a', 'b'])
     dispose()
   })
 })

@@ -19,7 +19,7 @@ const {
   paneIdAtPoint,
   mainSessionIdOf,
   createTranslator,
-  constants: { STORAGE_KEY, STORAGE_VERSION, DEFAULT_MAX_PANES, MAX_MAX_PANES, GRID_MAX_COLUMNS },
+  constants: { STORAGE_KEY, STORAGE_VERSION, ENABLED_KEY, DEFAULT_MAX_PANES, MAX_MAX_PANES, GRID_MAX_COLUMNS },
 } = exports.__internals
 
 test('a fresh store is empty, with the default six-cell ceiling', () => {
@@ -31,6 +31,54 @@ test('a fresh store is empty, with the default six-cell ceiling', () => {
   assert.equal(DEFAULT_MAX_PANES, 6)
   assert.equal(MAX_MAX_PANES, 9, 'three full rows of three')
   assert.ok(Object.isFrozen(state) && Object.isFrozen(state.panes), 'snapshots are frozen')
+})
+
+test('a fresh store is enabled by default and a missing flag never disables it', () => {
+  const empty = new MultiChatStore({ storage: createMemoryStorage() })
+  assert.equal(empty.getSnapshot().enabled, true)
+  // Unreadable storage must fail open: the grid is the plugin's whole point.
+  const blocked = new MultiChatStore({
+    storage: {
+      getItem() {
+        throw new Error('blocked')
+      },
+      setItem() {
+        throw new Error('blocked')
+      },
+      removeItem() {
+        throw new Error('blocked')
+      },
+    },
+  })
+  assert.equal(blocked.getSnapshot().enabled, true)
+})
+
+test('the grid switch persists on its own key and never rewrites the pane payload', () => {
+  const storage = createMemoryStorage()
+  const store = new MultiChatStore({ storage })
+  store.open('a')
+  store.open('b')
+  const panes = storage.getItem(STORAGE_KEY)
+
+  assert.equal(store.setEnabled(false), false)
+  assert.equal(store.getSnapshot().enabled, false)
+  assert.equal(storage.getItem(ENABLED_KEY), 'off')
+  assert.equal(storage.getItem(STORAGE_KEY), panes, 'the pane order is untouched')
+
+  // A later window (or a reload) starts from the stored preference.
+  assert.equal(new MultiChatStore({ storage }).getSnapshot().enabled, false)
+
+  assert.equal(store.setEnabled(true), true)
+  assert.equal(storage.getItem(ENABLED_KEY), null, 'on is the default, so the key is removed')
+  assert.equal(store.getSnapshot().enabled, true)
+  assert.equal(storage.getItem(STORAGE_KEY), panes)
+  // No-op when nothing changes, and subscribers still hear about a real flip.
+  const seen = []
+  store.subscribe(() => seen.push(store.getSnapshot().enabled))
+  store.setEnabled(true)
+  assert.deepEqual(seen, [])
+  store.setEnabled(false)
+  assert.deepEqual(seen, [false])
 })
 
 test('opening sessions yields one pane per session, in click order', () => {

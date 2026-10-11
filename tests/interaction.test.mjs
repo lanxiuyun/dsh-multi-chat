@@ -76,6 +76,7 @@ function rootProps(controller, options = {}) {
     swapPanes: (left, right) => controller.swapPanes(left, right),
     movePaneToEnd: (id) => controller.movePaneToEnd(id),
     keepOnlyActive: () => controller.keepOnlyActive(),
+    setEnabled: (value) => controller.setEnabled(value),
     canClosePane: (id) => controller.canClosePane(id),
     t: (key, params) => (params === undefined ? key : `${key}${JSON.stringify(params)}`),
   }
@@ -512,11 +513,38 @@ test('toolbar actions collapse to the active pane', async () => {
   sessions.setMain('b')
   sessions.setMain('c')
   const view = await mount(h(MultiChatRoot, rootProps(controller, { rows })))
-  const keepButton = view.query('button.dsh-mc-bar-btn')
+  // The bar carries two actions now (exit grid, keep only active): pick the
+  // keep-only one by its label rather than by position.
+  const keepButton = view
+    .queryAll('button.dsh-mc-bar-btn')
+    .find((button) => /bar\.onlyActive/.test(button.textContent ?? ''))
+  assert.ok(keepButton, 'the keep-only-active action is present')
 
   await click(keepButton)
   assert.deepEqual(controller.store.getSnapshot().panes, ['c'])
   assert.equal(view.queryAll('section.dsh-mc-pane').length, 1)
+
+  await view.unmount()
+  dispose()
+})
+
+test('the toolbar exit action switches the grid off and the store remembers it', async () => {
+  const { controller, sessions, rows, dispose } = makeController(['a', 'b'])
+  sessions.setMain('b')
+  const view = await mount(h(MultiChatRoot, rootProps(controller, { rows })))
+  const exitButton = view
+    .queryAll('button.dsh-mc-bar-btn')
+    .find((button) => /bar\.exit/.test(button.textContent ?? ''))
+  assert.ok(exitButton, 'the exit action is present')
+
+  await click(exitButton)
+  assert.equal(controller.store.getSnapshot().enabled, false, 'the preference flips off')
+  assert.equal(controller.debug.isRegistered(), false, 'and the official view takes the area back')
+
+  // Switching back on restores the grid from the remembered panes.
+  controller.setEnabled(true)
+  assert.equal(controller.store.getSnapshot().enabled, true)
+  assert.equal(controller.debug.isRegistered(), true)
 
   await view.unmount()
   dispose()

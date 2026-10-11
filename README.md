@@ -53,6 +53,11 @@ npm test       # 7 suites, 90 tests
 npm run typecheck
 ```
 
+**v0.3.0 feature — the grid can be switched off**: pick **Settings → Plugins → dsh-multi-chat** and flip
+*Enable the side-by-side grid* (or press **Exit grid** in the grid toolbar). Off returns the conversation area to
+the official single-session view; the panes you had opened are remembered, so switching back on brings the grid
+straight back. The preference is stored separately from the pane order, so toggling can never disturb it.
+
 **v0.2.6 fix**: the official turn navigator (the tick rail with turn previews on the right of a
 conversation) hid itself inside every pane, because the official stylesheet hides it whenever its
 conversation container is narrower than 900px. One pane-scoped rule with higher specificity restores it

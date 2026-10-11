@@ -1,6 +1,6 @@
 {
   "name": "dsh-multi-chat",
-  "version": "0.2.6",
+  "version": "0.3.0",
   "description": "Side-by-side multi-session grid for the DeepSeek Harness web GUI: every session you click in the sidebar joins the conversation area as its own pane (max 3 per row), the active session stays highlighted, and panes can be reordered by dragging their top-right handle.",
   "type": "module",
   "main": "lib/index.js",

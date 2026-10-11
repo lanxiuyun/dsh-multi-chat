@@ -73,6 +73,8 @@
 | A25 | **窄窗口（<720px）不接管**：不注册槽位、不 retain 会话、不写共享存储；窗口变宽后自动恢复（含重新跟随当前会话），再变窄则交还对话区 | `tests/registration.test.mjs`（假 window + resize）+ 真机 490×640 / 1680×1050 / 520×700 复验 |
 | A26 | **列数随可用宽度自动铺满**：2 格会话各占一半（不再留空白列），宽度足够才 3 个一行，面板宽度不低于约 400px | `tests/render.test.mjs`（列模板断言）+ 真机 1680 / 1150 / 950 复验 |
 | A27 | **网格面板里恢复官方回合导航栏（TurnNavigator）**：官方规则"容器 <900px 就隐藏"在面板里被一条更高特异性的作用域规则覆盖，且只作用于 `.dsh-mc-pane` 内；官方类名前缀运行时从官方样式表读取，读不到就不注入 | `tests/turn-rail.test.mjs`（4 用例：规则形状/缺样式表回退/幂等/换前缀与无关样式表）+ 真机复验面板内 `display:block`、11 刻度 |
+| A28 | **开关存在于官方设置页且真的生效**：设置 → 插件列表里出现我们自己的条目（`plugins.item`，`view:'summary'`/`'page'` 两种渲染），开关状态与 store 同步；关闭后对话区回到官方单会话视图，重新打开后网格带记忆面板回来；卡片独立于网格注册，网格关掉时仍可达 | `tests/registration.test.mjs`（关掉时卡片仍在、开回后恢复）+ `tests/render.test.mjs`（卡片两种 view、`data-enabled`）+ 真机 设置→插件→卡片 往返复验（`on → off → 会话官方视图 → on → 网格 3 格`，零控制台报错） |
+| A29 | **开关偏好与面板集合分开持久化**：写在 `dsh-multi-chat:grid`（`'off'`；开=删除键），绝不重写 `dsh-multi-chat:v1` 的面板顺序；缺键/存储异常一律视为「开启」（fail-open） | `tests/store.test.mjs` |
 
 ## 4. 实现要点
 
@@ -277,6 +279,23 @@ desktop profile 里完成（插件已装好，重启即生效）。
 就完全不注入。面板本身 `overflow:hidden`，导轨 28px + `right:12px`、预览卡 `min(300px, 100cqw - 120px)` 都
 落在面板内，不会溢到相邻格。
 真机复验：面板内该元素 `display:"block"`、`marks:11`、`28×102px`；截图可见刻度栏回到面板右缘。
+
+**F12 新增：网格开关（v0.3.0，设置 → 插件 → dsh-multi-chat）**：用户要求"找一个地方设置是否开启网格布局"。
+按官方「Plugin Configuration Forms」文档选定实现：注册进 **`plugins.item`**（官方设置卡片的扩展点，5 个官方
+设置插件同款），条目 `{id:'multi-chat', order:140, label, locale, inject}`；渲染器会以 **`view:'summary'`**
+（插件列表里的一句话说明）与 **`view:'page'`**（详情页，另带官方 `form` face）两种方式渲染同一个组件。
+开关调用 `setEnabled`，偏好写在**独立的 `dsh-multi-chat:grid`**（值 `'off'`；开启时删除该键），与面板集合
+`dsh-multi-chat:v1` 完全分开：关开关不会重写面板顺序，窄窗口也不会互相覆盖；缺键/存储异常一律视为开启。
+卡片**独立于网格注册**（网格关掉后它是唯一的回头路），也不依赖任何面板存在；工具栏另加一个「退出并排」按钮，
+同一份偏好、立即生效。关闭时插件走与窄窗口完全相同的惰性路径（不跟随会话、不 retain、不注册、不写面板集合）；
+重新打开时会重新跟随当前会话，因此"关掉→再开"能带着记忆面板回来。
+
+**坑 1（已记入文档）**：renderer 会**剥掉** inject face 里的 `hooks`，把每个 source 换成标准 hook prop
+（`hooks.multiChat` → `useMultiChat`）。设置卡片不是由网格渲染的，所以必须用 `useMultiChat` 订阅 store；
+读 `props.hooks` 永远是 `undefined`，症状是"点开关确实写入了存储、网格也关了，但卡片自己一直显示已开启"。
+
+**坑 2（验收脚本）**：客户端 bundle 的 URL + `rev` 稳定，复用同一个 Chrome profile 会被 HTTP 缓存命中，
+必须 `Network.setCacheDisabled` 或换 profile；服务端也要**重启**才会重新计算 `rev`（否则验证的是旧 bundle）。
 
 ## 5. 已知限制与风险
 

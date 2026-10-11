@@ -15,7 +15,7 @@ import { loadClientBundle } from './harness.mjs'
 
 const { exports } = loadClientBundle()
 const {
-  components: { MultiChatRoot, MultiChatBar, MultiChatPane, PaneBoundary, DragGhost },
+  components: { MultiChatRoot, MultiChatBar, MultiChatPane, MultiChatSettingsCard, PaneBoundary, DragGhost },
   CSS,
   STYLE_TAG_ID,
   injectStyles,
@@ -213,10 +213,46 @@ test('the toolbar reports the pane count, cell usage, the drag hint and the noti
   assert.match(html, /bar\.dragHint/)
   assert.match(html, /notice\.evicted/)
   assert.match(html, /bar\.onlyActive/, 'the keep-only-active action stays')
+  assert.match(html, /bar\.exit/, 'the toolbar can switch the grid off without leaving the window')
   // The old columns/rows toggle is gone: the grid is the only layout.
   assert.doesNotMatch(html, /bar\.toRows|bar\.toColumns/)
   const buttons = html.match(/<button[^>]*dsh-mc-bar-btn[^>]*>/g) ?? []
-  assert.equal(buttons.length, 1)
+  assert.equal(buttons.length, 2, 'exit grid + keep only active')
+})
+
+test('the settings card summarizes the feature and renders the switch on its page', () => {
+  const calls = []
+  // The renderer hands a face's `hooks.multiChat` back as `useMultiChat`, so the
+  // card subscribes through that standard hook — never through `props.hooks`.
+  const useMultiChat = (selector) => selector({ panes: [], activeId: undefined, maxPanes: 6, notice: undefined, enabled: currentEnabled })
+  let currentEnabled = true
+  const face = {
+    t: (key, params) => (params === undefined ? key : `${key}:${JSON.stringify(params)}`),
+    setEnabled: (value) => calls.push(value),
+  }
+  const summary = renderToStaticMarkup(h(MultiChatSettingsCard, { ...face, useMultiChat, view: 'summary' }))
+  assert.match(summary, /settings\.summary/)
+  assert.doesNotMatch(summary, /dsh-mc-settings-switch/, 'the summary is a one-liner, not the form')
+
+  const page = renderToStaticMarkup(h(MultiChatSettingsCard, { ...face, useMultiChat, view: 'page' }))
+  assert.match(page, /class="dsh-mc-settings"/)
+  assert.match(page, /data-enabled="on"/)
+  assert.match(page, /type="checkbox"/)
+  assert.match(page, /checked=""/, 'on by default')
+  assert.match(page, /settings\.toggle/)
+  assert.match(page, /settings\.toggleHint/)
+  assert.match(page, /settings\.stateOn/)
+
+  currentEnabled = false
+  const off = renderToStaticMarkup(h(MultiChatSettingsCard, { ...face, useMultiChat, view: 'page' }))
+  assert.doesNotMatch(off, /checked=""/, 'off renders an unchecked switch')
+  assert.match(off, /settings\.stateOff/)
+  assert.match(off, /data-enabled="off"/)
+
+  // Defensive: a face without the hook must not throw inside the settings page.
+  const bare = renderToStaticMarkup(h(MultiChatSettingsCard, { ...face, view: 'page' }))
+  assert.match(bare, /type="checkbox"/)
+  assert.match(bare, /data-enabled="no-store"/)
 })
 
 test('the drag ghost carries the dragged pane identity for the pointer layer', () => {
