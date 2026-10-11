@@ -53,6 +53,12 @@ npm test       # 7 suites, 90 tests
 npm run typecheck
 ```
 
+**v0.2.5 fix**: the column count was hard-coded to three, so two sessions left a third of the row empty.
+The grid now fills: columns follow the available width (`auto-fit` collapses the tracks no pane lands in),
+two panes share the row, and three across appears only when the width allows — panes stay at least ~400px
+wide. Measured at a 1680px window: two panes = 2×688px (100% of the row), three = 3×456px, four = 3+1
+equal cells.
+
 **v0.2.4 change**: the grid is a wide-window feature, so a narrow window keeps the official single
 session view. Below 720px of window width the plugin is completely inert — no session is retained, no
 slot is replaced, and nothing is written to the shared storage (which the floating session window would

@@ -75,6 +75,7 @@ clicked session highlighted.
 | A23 | More panes than one row (>3) turns on `content-visibility` virtualisation | `tests/render.test.mjs` (`data-virtualize` + rule) and a live node-count check |
 | A24 | **The toolbar stays on one line in narrow windows** (e.g. the ~490px DSH floating session window) and degrades by width: never wraps, drops the drag hint at ≤640px, drops the usage counter and switches to the compact label at ≤480px; row height becomes `min(420px,62vh)` | `tests/render.test.mjs` + live 490×640 check |
 | A25 | **Narrow windows (<720px) are not taken over**: no slot registration, no retained sessions, no writes to shared storage; widening restores the grid (re-adopting the current session) and narrowing hands the conversation area back | `tests/registration.test.mjs` (fake window + resize) + live 490×640 / 1680×1050 / 520×700 checks |
+| A26 | **The column count follows the available width and fills the row**: two panes share the width (no empty third column), three across only when the width allows, panes never narrower than ~400px | `tests/render.test.mjs` (column template) + live 1680 / 1150 / 950 checks |
 
 ## 4. Implementation
 
@@ -289,6 +290,16 @@ shows and mounts the grid again. Unknown/zero widths read as "wide" (fail-open) 
 never disable the feature. Live checks: **cold start at 490×640 = 0 grids / 0 toolbars / one official
 conversation body with a working composer**; widening to 1680×1050 = 4 panes, 4 composers; narrowing to
 520×700 = the official view again; console clean throughout.
+
+**F10 the column count was hard-coded to three, leaving an empty column with two panes (v0.2.5)**:
+`.dsh-mc-grid` used `repeat(3,minmax(0,1fr))`, so two panes occupied the first two columns and left a third
+of the row empty (confirmed by the user's screenshot). It is now
+`repeat(auto-fit,minmax(max(400px,30%),1fr))`: `auto-fit` **collapses the tracks no pane lands in**, so two
+panes share the row; `max(400px,30%)` provides both the pane floor (~400px) and the three-per-row cap
+(four 30% tracks can never fit, and once 30% exceeds 400px that percentage is the binding constraint).
+Live numbers (1680px window, 1384px of grid content): two panes = 2×688px filling 100%; three =
+3×456px; four = 3×456 + 1×456 (equal cells, the last row keeps its gap — confirmed with the user);
+a 1150px window gives two columns; a 950px window gives two; console clean throughout.
 
 ## 5. Known limitations and risks
 

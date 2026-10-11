@@ -241,7 +241,17 @@ test('a pane-level error boundary is what contains a broken pane', () => {
 test('the grid is at most three equal columns and degrades by width', () => {
   assert.equal(GRID_MAX_COLUMNS, 3)
   assert.match(CSS, /\.dsh-mc-grid\{[^}]*display:grid/)
-  assert.match(CSS, /grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/)
+  // Width-driven columns that always fill the row: `auto-fit` collapses the
+  // tracks no pane lands in (two panes share the width instead of leaving a third
+  // column empty), `max(400px, 30%)` sets the pane floor and caps the row at three
+  // (four tracks of 30% can never fit, and once 30% exceeds 400px that floor is
+  // the binding one at four columns too).
+  assert.match(
+    CSS,
+    /grid-template-columns:repeat\(auto-fit,minmax\(max\(400px,30%\),1fr\)\)/,
+    'the row must fill with as many panes as fit, up to three',
+  )
+  assert.doesNotMatch(CSS, /grid-template-columns:repeat\(3,/, 'a fixed three-column track left two-pane rows ragged')
   assert.match(CSS, /grid-auto-rows:minmax\(min\(420px,62vh\),1fr\)/, 'rows also yield to short windows')
   assert.match(CSS, /@container \(width<=1100px\)\{\.dsh-mc-grid\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}\}/)
   assert.match(CSS, /@container \(width<=720px\)\{\.dsh-mc-grid\{grid-template-columns:minmax\(0,1fr\)\}\}/)
