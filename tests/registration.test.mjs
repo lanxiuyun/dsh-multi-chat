@@ -8,7 +8,7 @@
  */
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { createFakeCtx, createFakeSessions, createFakeSlots, createMemoryStorage, loadClientBundle, sessionRow } from './harness.mjs'
+import { createFakeCtx, createFakeSessions, createFakeSlots, createFakeWindow, createMemoryStorage, loadClientBundle, sessionRow } from './harness.mjs'
 
 const { exports } = loadClientBundle()
 const {
@@ -524,6 +524,50 @@ test('releasing a pane publishes retention without recursing either', () => {
     [...warnings, ...releaseWarnings].filter((line) => /call stack|sync failed|list handling failed/i.test(line)),
     [],
   )
+})
+
+test('a narrow window keeps the official view and touches nothing else', () => {
+  // The DSH floating session window is ~490px wide: panes stacked in one column
+  // are worse than the normal conversation, so the plugin stays inert there. It
+  // must also keep its hands off shared storage, or the floating window would
+  // overwrite the pane set the main window owns.
+  const fakeWindow = createFakeWindow(490)
+  const narrow = loadClientBundle({ globals: { window: fakeWindow } })
+  const slots = createFakeSlots()
+  slots.declare(SLOT_MAIN)
+  slots.declare(SLOT_ROW_ACTION)
+  const sessions = createFakeSessions({
+    a: sessionRow('a', { retainedBy: { mainView: 1 } }),
+    b: sessionRow('b'),
+  })
+  const stored = JSON.stringify({ version: 2, panes: ['a', 'b'], maxPanes: 6 })
+  const storage = createMemoryStorage({ 'dsh-multi-chat:v1': stored })
+
+  withGlobalStorage(storage, () => {
+    const { ctx, dispose } = createFakeCtx({ slots, sessions, uiWorkspace: { openSession() {} } })
+    narrow.exports.apply(ctx)
+    sessions.setMain('b')
+
+    assert.equal(slots.live(SLOT_MAIN).length, 0, 'the official conversation view stays in place')
+    assert.equal(slots.live(SLOT_ROW_ACTION).length, 0, 'no sidebar affordance either')
+    assert.deepEqual(sessions.retainCalls, [], 'no session is held live for panes that are not shown')
+    assert.equal(storage.getItem('dsh-multi-chat:v1'), stored, 'shared storage is left untouched')
+    assert.equal(fakeWindow.resizeListeners, 1, 'the width transition is still observed')
+
+    // Widening the same window past the threshold brings the grid back.
+    fakeWindow.setWidth(1280)
+    assert.equal(slots.live(SLOT_MAIN).length, 1, 'the grid comes back')
+    assert.deepEqual(sessions.retainCalls.map((call) => call.id).sort(), ['a', 'b'])
+    const face = slotProps(slots.live(SLOT_MAIN)[0].options.inject())
+    assert.deepEqual(face.hooks.multiChat.getSnapshot().panes, ['a', 'b'])
+
+    // Narrowing again hands the conversation area (and the references) back.
+    fakeWindow.setWidth(520)
+    assert.equal(slots.live(SLOT_MAIN).length, 0, 'narrowing restores the official view')
+    assert.deepEqual(sessions.releaseCalls.sort(), ['a', 'b'])
+    assert.equal(storage.getItem('dsh-multi-chat:v1'), stored, 'the stored pane set survives')
+    dispose()
+  })
 })
 
 test('the registered components and the inject face line up', () => {

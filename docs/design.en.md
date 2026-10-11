@@ -74,6 +74,7 @@ clicked session highlighted.
 | A22 | **One click on a composer focuses it**: navigation runs on focusin/click, never on pointerdown | `tests/interaction.test.mjs` |
 | A23 | More panes than one row (>3) turns on `content-visibility` virtualisation | `tests/render.test.mjs` (`data-virtualize` + rule) and a live node-count check |
 | A24 | **The toolbar stays on one line in narrow windows** (e.g. the ~490px DSH floating session window) and degrades by width: never wraps, drops the drag hint at ≤640px, drops the usage counter and switches to the compact label at ≤480px; row height becomes `min(420px,62vh)` | `tests/render.test.mjs` + live 490×640 check |
+| A25 | **Narrow windows (<720px) are not taken over**: no slot registration, no retained sessions, no writes to shared storage; widening restores the grid (re-adopting the current session) and narrowing hands the conversation area back | `tests/registration.test.mjs` (fake window + resize) + live 490×640 / 1680×1050 / 520×700 checks |
 
 ## 4. Implementation
 
@@ -276,6 +277,18 @@ progressive disclosure by container width (`≤640px` drops the drag hint; `≤4
 counter and swaps the title for the compact "{count} panes" label, keeping the keep-only button). Row
 height also yields to short windows: `minmax(min(420px,62vh),1fr)` → 397px rows in a 640px-tall window.
 Live 490×640 check: toolbar **one line, 37px**, single column, composer visible, console clean.
+
+**F9 narrow windows (the DSH floating session window) no longer get the grid (v0.2.4)**: that window is
+only ~490px wide, where N panes stacked in one column are worse than the official single-session view.
+The plugin is now gated by window width: below `innerWidth < 720` (the narrowest CSS breakpoint) it is
+**fully inert** — it does not follow the shell's session, retains nothing, registers nothing, and
+**writes nothing to localStorage** (the floating window shares storage with the main window, so a write
+would clobber the pane set the main window owns). A `resize` listener switches both ways: narrowing
+releases the references and hands the conversation area back; widening re-adopts the session the shell
+shows and mounts the grid again. Unknown/zero widths read as "wide" (fail-open) so a missing signal can
+never disable the feature. Live checks: **cold start at 490×640 = 0 grids / 0 toolbars / one official
+conversation body with a working composer**; widening to 1680×1050 = 4 panes, 4 composers; narrowing to
+520×700 = the official view again; console clean throughout.
 
 ## 5. Known limitations and risks
 

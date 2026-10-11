@@ -71,6 +71,36 @@ export function createMemoryStorage(initial) {
 }
 
 /**
+ * A minimal `window` for tests that must control the viewport width and fire
+ * resize events (the plugin gates the grid by window width, because the DSH
+ * floating session window is only ~490px wide).
+ *
+ * @param width - initial viewport width in CSS pixels.
+ * @returns a fake event target with `setWidth` to simulate a resize.
+ */
+export function createFakeWindow(width) {
+  const listeners = new Set()
+  return {
+    innerWidth: width,
+    addEventListener(type, listener) {
+      if (type === 'resize' && typeof listener === 'function') listeners.add(listener)
+    },
+    removeEventListener(type, listener) {
+      if (type === 'resize') listeners.delete(listener)
+    },
+    /** Change the width and notify the listeners the way a real resize does. */
+    setWidth(next) {
+      this.innerWidth = next
+      for (const listener of [...listeners]) listener({ type: 'resize' })
+    },
+    /** @returns how many resize listeners are still attached. */
+    get resizeListeners() {
+      return listeners.size
+    },
+  }
+}
+
+/**
  * A faithful-enough stand-in for `ctx.slots`: declaration lifetimes drive
  * `inject` callbacks, registrations are recorded and disposable.
  */

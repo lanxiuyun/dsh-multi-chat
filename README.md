@@ -53,6 +53,13 @@ npm test       # 7 suites, 90 tests
 npm run typecheck
 ```
 
+**v0.2.4 change**: the grid is a wide-window feature, so a narrow window keeps the official single
+session view. Below 720px of window width the plugin is completely inert — no session is retained, no
+slot is replaced, and nothing is written to the shared storage (which the floating session window would
+otherwise clobber with its own pane set). Widening the window brings the grid back; narrowing hands the
+conversation area back. Verified live: 490×640 cold start shows the normal conversation, 1680×1050 shows
+the grid, resizing switches both ways.
+
 **v0.2.3 fix**: in a narrow window (the ~490 px floating session window) the grid toolbar wrapped into
 three lines and squeezed the conversation. It now never wraps and degrades by width — dropping the drag
 hint, then the usage counter, swapping the title for a compact "N panes" label — and the row height
