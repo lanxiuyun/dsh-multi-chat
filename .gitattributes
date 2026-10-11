@@ -1,0 +1,8 @@
+# Keep the repository LF-only so the shipped bundles and docs diff cleanly across
+# platforms; Windows checkouts may still materialise CRLF via core.autocrlf.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.zstd binary

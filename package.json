@@ -1,0 +1,71 @@
+{
+  "name": "dsh-multi-chat",
+  "version": "0.2.2",
+  "description": "Side-by-side multi-session grid for the DeepSeek Harness web GUI: every session you click in the sidebar joins the conversation area as its own pane (max 3 per row), the active session stays highlighted, and panes can be reordered by dragging their top-right handle.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./icon": "./icon.svg",
+    "./locale/*.json": "./locale/*.json",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [],
+      "platform": "web"
+    }
+  },
+  "files": [
+    "lib/**/*.js",
+    "locale/*.json",
+    "docs/**/*.md",
+    "scripts/**/*.mjs",
+    "cordis.patch.yml",
+    "icon.svg",
+    "README.md",
+    "README.zh.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node tests/manifest.test.mjs && node tests/host.test.mjs && node tests/store.test.mjs && node tests/registration.test.mjs && node tests/real-slot-core.test.mjs && node tests/render.test.mjs && node tests/interaction.test.mjs",
+    "test:watch": "node --test --test-isolation=none \"tests/*.test.mjs\"",
+    "e2e:served": "node scripts/verify-served-bundle.mjs",
+    "e2e:browser": "node scripts/browser-e2e.mjs",
+    "typecheck": "node --check lib/index.js && node --check lib/client.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "dsh-plugin",
+    "multi-session",
+    "multi-chat",
+    "grid",
+    "slots",
+    "web-gui"
+  ],
+  "license": "MIT",
+  "author": "lanxiuyun",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanxiuyun/dsh-multi-chat.git"
+  },
+  "homepage": "https://github.com/lanxiuyun/dsh-multi-chat#readme",
+  "bugs": {
+    "url": "https://github.com/lanxiuyun/dsh-multi-chat/issues"
+  },
+  "devDependencies": {
+    "@deepseek-ai/dsh-client-ui-slots": "^0.1.7-rc.2",
+    "jsdom": "^25.0.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "yaml": "^2.6.1"
+  }
+}

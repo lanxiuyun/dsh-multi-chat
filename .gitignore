@@ -1,0 +1,10 @@
+# installed by `npm install` for the test suite (dev-only dependencies)
+node_modules/
+# local verification scratch space (isolated DSH_HOME/profile, browser profile, caches)
+.dsh-verify/
+.verify/
+.verify-live/
+.chrome-profile/
+.pnpm-store/
+.npm-cache/
+*.log

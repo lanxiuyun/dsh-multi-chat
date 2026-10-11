@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Multi-Chat",
+    "description": "Shows sessions side by side in an equal-cell grid (at most three per row): every session you click in the sidebar joins the grid as its own pane, the active session is highlighted, and panes can be reordered by dragging the handle in their top-right corner."
+  }
+}
