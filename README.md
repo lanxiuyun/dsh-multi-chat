@@ -53,6 +53,12 @@ npm test       # 7 suites, 90 tests
 npm run typecheck
 ```
 
+**v0.2.3 fix**: in a narrow window (the ~490 px floating session window) the grid toolbar wrapped into
+three lines and squeezed the conversation. It now never wraps and degrades by width — dropping the drag
+hint, then the usage counter, swapping the title for a compact "N panes" label — and the row height
+yields to short windows (`min(420px, 62vh)`). Measured in a 490×640 window: one 37 px line, single
+column, composer fully visible.
+
 **v0.2.2 fixes** (reported from a live session, located in a real browser): the grid used to be
 registered in a *session-scoped* slot, which the renderer remounts whenever the shell switches
 session — so every switch rebuilt the grid and all pane conversations (the lag that grew with the

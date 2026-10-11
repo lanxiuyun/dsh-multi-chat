@@ -73,6 +73,7 @@ clicked session highlighted.
 | A21 | **The grid lives in a root-scope cell**: switching sessions never remounts the grid or its panes (the cause of both the lag and the lost focus) | `tests/real-slot-core.test.mjs` (`spec('main').scope === 'root'`) + `tests/registration.test.mjs` (`key='conversation'`) |
 | A22 | **One click on a composer focuses it**: navigation runs on focusin/click, never on pointerdown | `tests/interaction.test.mjs` |
 | A23 | More panes than one row (>3) turns on `content-visibility` virtualisation | `tests/render.test.mjs` (`data-virtualize` + rule) and a live node-count check |
+| A24 | **The toolbar stays on one line in narrow windows** (e.g. the ~490px DSH floating session window) and degrades by width: never wraps, drops the drag hint at ≤640px, drops the usage counter and switches to the compact label at ≤480px; row height becomes `min(420px,62vh)` | `tests/render.test.mjs` + live 490×640 check |
 
 ## 4. Implementation
 
@@ -266,6 +267,15 @@ onboarding modals ("内测声明" and "添加 API Key") whose mask (`div._mask_�
 interaction, or synthetic clicks appear to do nothing. The isolated profile cannot create listable
 sessions without credentials, so the live grid checks were driven by **seeding the plugin's own
 persisted pane set with real session ids**.
+
+**F8 the toolbar wrapped into three lines in a narrow window (v0.2.3)**: every item in `.dsh-mc-bar`
+could shrink and wrap, so in the ~490px floating session window it became "3 sessions / side by side",
+"3/4 / cells", "drag the handle… / to reorder" — three lines that squeezed the conversation. Now:
+`flex-wrap:nowrap` + `white-space:nowrap`, with `min-width:0` + ellipsis on the title/hint/usage, and
+progressive disclosure by container width (`≤640px` drops the drag hint; `≤480px` drops the usage
+counter and swaps the title for the compact "{count} panes" label, keeping the keep-only button). Row
+height also yields to short windows: `minmax(min(420px,62vh),1fr)` → 397px rows in a 640px-tall window.
+Live 490×640 check: toolbar **one line, 37px**, single column, composer visible, console clean.
 
 ## 5. Known limitations and risks
 

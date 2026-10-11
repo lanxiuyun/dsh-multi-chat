@@ -242,7 +242,7 @@ test('the grid is at most three equal columns and degrades by width', () => {
   assert.equal(GRID_MAX_COLUMNS, 3)
   assert.match(CSS, /\.dsh-mc-grid\{[^}]*display:grid/)
   assert.match(CSS, /grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/)
-  assert.match(CSS, /grid-auto-rows:minmax\(420px,1fr\)/, 'rows share the height but never below a usable pane')
+  assert.match(CSS, /grid-auto-rows:minmax\(min\(420px,62vh\),1fr\)/, 'rows also yield to short windows')
   assert.match(CSS, /@container \(width<=1100px\)\{\.dsh-mc-grid\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}\}/)
   assert.match(CSS, /@container \(width<=720px\)\{\.dsh-mc-grid\{grid-template-columns:minmax\(0,1fr\)\}\}/)
 })
@@ -255,6 +255,29 @@ test('the pane body is the official embedding host box and carries no width hack
   assert.doesNotMatch(bodyRule, /container-type/, 'the cqw width hack is gone: embedded computes its own width')
   assert.doesNotMatch(CSS, /cqw/, 'no container-query width units anywhere')
   assert.doesNotMatch(CSS, /--dsh-chat-user-width/)
+})
+
+test('the toolbar never wraps and degrades by width (floating-window fix)', () => {
+  const barRule = CSS.match(/\.dsh-mc-bar\{[^}]*\}/)?.[0] ?? ''
+  assert.match(barRule, /flex-wrap:nowrap/, 'wrapping is what inflated the toolbar in a 490px window')
+  assert.match(barRule, /white-space:nowrap/)
+  assert.match(barRule, /overflow:hidden/)
+  // Progressive disclosure keeps the essential controls in very narrow windows.
+  assert.match(CSS, /@container \(width<=640px\)\{\.dsh-mc-bar-hint\{display:none\}\}/)
+  assert.match(CSS, /@container \(width<=480px\)\{[^@]*dsh-mc-bar-title\{display:none\}/)
+  assert.match(CSS, /@container \(width<=480px\)\{[^@]*dsh-mc-bar-short\{display:inline\}/)
+  // Rows also yield to short windows instead of forcing a 420px floor.
+  assert.match(CSS, /grid-auto-rows:minmax\(min\(420px,62vh\),1fr\)/)
+
+  const { props } = slotProps({
+    panes: ['a', 'b', 'c'],
+    activeId: 'a',
+    references: { a: { sessionId: 'a' }, b: { sessionId: 'b' }, c: { sessionId: 'c' } },
+  })
+  const html = renderToStaticMarkup(h(MultiChatRoot, props))
+  assert.match(html, /dsh-mc-bar-short/, 'the compact label ships with the bar')
+  assert.match(html, /bar\.short\{&quot;count&quot;:3\}/)
+  assert.match(html, /bar\.onlyActive/, 'the keep-only control survives the narrow mode')
 })
 
 test('the grid virtualises off-screen panes once it has to scroll', () => {

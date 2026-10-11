@@ -69,6 +69,7 @@
 | A21 | **网格挂在 root scope 的 cell 上**：切会话不会重挂载网格/各格对话（这是"卡"与"输入框丢焦点"的根因） | `tests/real-slot-core.test.mjs`（断言 `spec('main').scope === 'root'`）+ `tests/registration.test.mjs`（`key='conversation'`） |
 | A22 | **第一下点击输入框就聚焦**：pointerdown 不再触发导航；focusin/click 才激活面板 | `tests/interaction.test.mjs` |
 | A23 | 面板数超过一行（>3）时开启 `content-visibility` 虚拟化，离屏面板不参与渲染 | `tests/render.test.mjs`（`data-virtualize` 与样式）+ 真机节点数复验 |
+| A24 | **窄窗口（如 DSH 浮窗 ~490px）工具栏保持一行并按宽度降级**：永不换行，`≤640px` 隐藏拖动提示、`≤480px` 隐藏用量与全称改用紧凑标签；行高随窗口高度取 `min(420px,62vh)` | `tests/render.test.mjs`（样式与紧凑标签）+ 真机 490×640 复验 |
 
 ## 4. 实现要点
 
@@ -231,6 +232,13 @@ desktop profile 里完成（插件已装好，重启即生效）。
 模态弹窗，其遮罩 (`div._mask_…`) 会吃掉 `elementFromPoint` 与合成点击——必须在自动化里先点掉
 「继续 / 稍后配置」再测交互，否则会误判为"点击无效"。隔离 profile 的宿主侧在无凭据时无法新建可列出
 的会话，因此真机网格验证用的是**给插件自己的 localStorage 面板集合预置真实 session id** 的方式。
+
+**F8 窄窗口（DSH 浮窗/小窗）工具栏被挤成三行（v0.2.3）**：`.dsh-mc-bar` 的每一项都能收缩换行，在
+~490px 宽的浮窗里就变成「3 个会话 / 并排」「已用 3/4 / 格」「拖动面板右上角…/ 调整位置」三行，把会话区
+压扁。改为：`flex-wrap:nowrap` + `white-space:nowrap`，标题/提示/用量都 `min-width:0` + 省略号；再按容器
+宽度逐级降级（`≤640px` 去掉拖动提示，`≤480px` 去掉用量并换用紧凑标签「N 格」，只保留「只保留当前」按钮）；
+行高同时改为 `minmax(min(420px,62vh),1fr)`，小窗里 640px 高 → 每行 397px。真机 490×640 复验：工具栏
+**1 行 37px**、1 列、输入框可见、控制台干净。
 
 ## 5. 已知限制与风险
 
