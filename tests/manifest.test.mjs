@@ -44,6 +44,7 @@ test('declares a bundle patch and a web client half', () => {
   // The browser half requires nothing but platform seed modules, so it declares
   // no module-graph edges.
   assert.deepEqual(pkg.dsh.client.inject, [])
+  assert.equal(pkg.scripts?.['diagnostics:browser'], 'node scripts/browser-diagnostics.mjs')
 })
 
 test('ships the files the manifest promises', () => {

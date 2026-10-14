@@ -26,6 +26,10 @@ Design notes (EN): [docs/design.en.md](docs/design.en.md)
 | **Sidebar toggle** | Each session row gets an extra action button (next to archive/pin) that adds/removes that session as a pane **without** navigating. |
 | **Degrade, never break** | A single pane → the official single-session UI is used untouched. Unknown/closed sessions render a note card. A crashed pane is contained by a pane-level error boundary. No `slots`/`sessions` service → the plugin stays inert instead of failing the web boot. |
 
+## Diagnostics
+
+If switching sessions still shows only one pane, enable the opt-in browser log in DevTools: `localStorage.setItem('dsh-multi-chat:debug', '1')`, then reload and reproduce. Filter the console for `[dsh-multi-chat:debug]`. Events report counts, booleans, viewport width, and slot registration outcomes only; they omit session ids and conversation content. Disable with `localStorage.removeItem('dsh-multi-chat:debug')`. A running local Web profile can also be inspected with `node scripts/browser-diagnostics.mjs --port <port> --token <startup-token>`; this reports rendered grid/pane/button counts and does not create or switch sessions.
+
 ## Install
 
 The package is a DSH bundle plugin: the host half (`.` → `lib/index.js`) only exists so the
@@ -54,9 +58,9 @@ npm run typecheck
 ```
 
 **v0.3.0 feature — the grid can be switched off**: pick **Settings → Plugins → dsh-multi-chat** and flip
-*Enable the side-by-side grid* (or press **Exit grid** in the grid toolbar). Off returns the conversation area to
-the official single-session view; the panes you had opened are remembered, so switching back on brings the grid
-straight back. The preference is stored separately from the pane order, so toggling can never disturb it.
+*Enable the side-by-side grid* (or press **Exit grid** in the toolbar). Off returns the conversation area to
+the official single-session view; the pane set is remembered. **Keep only active** is different: it leaves the grid
+enabled with one pane, so clicking another session adds a pane again. The preference and pane set are stored separately.
 
 **v0.2.6 fix**: the official turn navigator (the tick rail with turn previews on the right of a
 conversation) hid itself inside every pane, because the official stylesheet hides it whenever its

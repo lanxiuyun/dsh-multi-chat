@@ -508,7 +508,7 @@ test('a pane that throws is contained while its siblings keep rendering', async 
   dispose()
 })
 
-test('toolbar actions collapse to the active pane', async () => {
+test('toolbar keep-only leaves the enabled preference on and clicking another session rebuilds the grid', async () => {
   const { controller, sessions, rows, dispose } = makeController(['a', 'b', 'c'])
   sessions.setMain('b')
   sessions.setMain('c')
@@ -523,6 +523,11 @@ test('toolbar actions collapse to the active pane', async () => {
   await click(keepButton)
   assert.deepEqual(controller.store.getSnapshot().panes, ['c'])
   assert.equal(view.queryAll('section.dsh-mc-pane').length, 1)
+  assert.equal(controller.store.getSnapshot().enabled, true, 'keep-only changes pane membership, not the grid preference')
+
+  sessions.setMain('a')
+  assert.deepEqual(controller.store.getSnapshot().panes, ['c', 'a'])
+  assert.equal(controller.debug.isRegistered(), true, 'the next session click restores the multi-pane grid')
 
   await view.unmount()
   dispose()

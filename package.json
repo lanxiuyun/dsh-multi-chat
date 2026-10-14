@@ -36,6 +36,7 @@
     "test:watch": "node --test --test-isolation=none \"tests/*.test.mjs\"",
     "e2e:served": "node scripts/verify-served-bundle.mjs",
     "e2e:browser": "node scripts/browser-e2e.mjs",
+    "diagnostics:browser": "node scripts/browser-diagnostics.mjs",
     "typecheck": "node --check lib/index.js && node --check lib/client.js"
   },
   "engines": {

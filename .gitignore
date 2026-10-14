@@ -5,6 +5,7 @@ node_modules/
 .verify/
 .verify-live/
 .chrome-profile/
+.diagnostics-profile/
 .pnpm-store/
 .npm-cache/
 *.log

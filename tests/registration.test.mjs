@@ -13,6 +13,7 @@ import { createFakeCtx, createFakeSessions, createFakeSlots, createFakeWindow, c
 const { exports } = loadClientBundle()
 const {
   createController,
+  createDebugLogger,
   constants: {
     SLOT_MAIN,
     MAIN_PANEL_KEY,
@@ -163,6 +164,48 @@ test('clicking three sessions yields three panes and three panes only', () => {
   assert.deepEqual(face.hooks.multiChat.getSnapshot().panes, ['a', 'b', 'c'])
   assert.equal(face.hooks.multiChat.getSnapshot().activeId, 'c')
   assert.deepEqual(sessions.retainCalls.map((call) => call.id).sort(), ['a', 'b', 'c'])
+})
+
+test('debug logger remains silent unless explicitly enabled in local storage', () => {
+  const messages = []
+  const originalInfo = console.info
+  console.info = (...args) => messages.push(args)
+  try {
+    createDebugLogger(createMemoryStorage())('disabled', { sessionCount: 2 })
+    assert.equal(messages.length, 0)
+
+    const storage = createMemoryStorage({ 'dsh-multi-chat:debug': '1' })
+    createDebugLogger(storage)('enabled', { sessionCount: 2 })
+    assert.equal(messages.length, 1)
+    assert.equal(messages[0][0], '[dsh-multi-chat:debug]')
+    assert.equal(messages[0][1].event, 'enabled')
+    assert.equal(messages[0][1].sessionCount, 2)
+  } finally {
+    console.info = originalInfo
+  }
+})
+
+test('opt-in diagnostic logs identify whether session changes mount the grid', () => {
+  const logs = []
+  const debug = (event, details) => logs.push({ event, details })
+  const slots = createFakeSlots()
+  slots.declare(SLOT_MAIN)
+  slots.declare(SLOT_ROW_ACTION)
+  const sessions = createFakeSessions({
+    a: sessionRow('a', { retainedBy: { mainView: 1 } }),
+    b: sessionRow('b'),
+  })
+  const { ctx } = createFakeCtx({ slots, sessions, uiWorkspace: { openSession() {} } })
+  const controller = createController({ ctx, slots, sessions, persist: false, debug })
+
+  sessions.setMain('b')
+
+  assert.ok(logs.some((row) => row.event === 'sessions:list' && row.details.sessionCount === 2))
+  assert.ok(logs.some((row) => row.event === 'sessions:observe-current'))
+  assert.ok(logs.some((row) => row.event === 'slots:registration-check' && row.details.paneCount === 2 && row.details.wanted))
+  assert.ok(logs.some((row) => row.event === 'slots:mounted'))
+  assert.equal(slots.live(SLOT_MAIN).length, 1)
+  controller.dispose()
 })
 
 test('the pane ceiling (6 by default, 9 max) is enforced while following the shell', () => {
